@@ -2,11 +2,12 @@ require("dotenv").config();
 
 const express = require("express");
 const {json} = require("body-parser");
-const {tareas} = require("./db");
+const cors = require("cors");
+const {tareas, crearTarea, borrarTarea, toggleEstado, editarTexto} = require("./db");
 
 
 const servidor = express();
-
+servidor.use(cors());
 servidor.use(json());
 
 if(process.env.LOCAL){
@@ -26,9 +27,56 @@ servidor.get("/tareas", async (peticion,respuesta) => {
     }
 });
 
-servidor.post("/tareas/nueva", (peticion,respuesta) => {
-    console.log(peticion.body);
-    respuesta.send("..x cosa");
+servidor.post("/tareas/nueva", async (peticion,respuesta,siguiente) => {
+    if(!peticion.body.tarea || peticion.body.tarea.trim() == ""){
+        return siguiente(true);
+    }
+    try{
+
+        let id = await crearTarea(peticion.body.tarea);
+
+        respuesta.json({id});
+
+    }catch(error){
+        respuesta.status(500);
+
+        respuesta.json(error);
+    }
+   
+});
+
+servidor.put("/tareas/actualizar/:id([0-9]+)/:operacion(1|2)", async (peticion,respuesta,siguiente) => {
+    let operacion = Number(peticion.params.operacion);
+    let funciones = [editarTexto,toggleEstado];
+
+    if(operacion == 1 && (!peticion.body.tarea || peticion.body.tarea.trim() == "")){
+        return siguiente(true);
+    }
+
+    try{
+        let count = await funciones[operacion - 1](peticion.params.id, operacion == 1 ? peticion.body.tarea : null);
+
+        respuesta.json({resultado: count ? "ok" : "ko"});
+    }catch{
+        respuesta.status(500);
+
+        respuesta.json(error);
+    }
+});
+
+servidor.delete("/tareas/borrar/:id([0-9]+)", async (peticion,respuesta) => {
+
+    try{
+
+        let count = await borrarTarea(peticion.params.id);
+
+        respuesta.json({resultado: count ? "ok" : "ko"});
+
+    }catch(error){
+        respuesta.status(500);
+
+        respuesta.json(error);
+    }
 });
 
 servidor.use((peticion,respuesta) => {
@@ -37,10 +85,8 @@ servidor.use((peticion,respuesta) => {
 });
 
 servidor.use((error,peticion,respuesta,siguiente) => {
-    console.log(error);
     respuesta.status(400);
     respuesta.json({ error : "error en la petición"});
 });
-
 
 servidor.listen(process.env.PORT);

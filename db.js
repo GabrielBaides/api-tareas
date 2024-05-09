@@ -30,4 +30,105 @@ function tareas(){
     });
 }
 
-module.exports = {tareas};
+function crearTarea(tarea){
+    return new Promise(async (ok,ko) => {
+        try{
+            const conexion = conectar();
+
+            let [{id}] = await conexion`INSERT INTO tareas (tarea) VALUES (${tarea}) RETURNING id`;
+
+            conexion.end();
+
+            ok(id);
+
+        }catch(error){
+
+            ko({ error : "error en el servidor" });
+
+        }
+    });
+}
+
+function borrarTarea(id){
+    return new Promise(async (ok,ko) => {
+        try{
+            const conexion = conectar();
+
+            let {count} = await conexion`DELETE FROM tareas WHERE id = ${id}`;
+            
+            conexion.end();
+
+            ok(count);
+
+        }catch(error){
+
+            ko({ error : "error en el servidor" });
+
+        }
+    });
+}
+
+function toggleEstado(id){
+    return new Promise(async (ok,ko) => {
+        try{
+            const conexion = conectar();
+
+            let {count} = await conexion`UPDATE tareas SET terminada = NOT terminada WHERE id = ${id}`;
+            
+            conexion.end();
+
+            ok(count);
+
+        }catch(error){
+
+            ko({ error : "error en el servidor" });
+
+        }
+    });
+}
+
+function editarTexto(id,tarea){
+    return new Promise(async (ok,ko) => {
+        try{
+            const conexion = conectar();
+
+            let {count} = await conexion`UPDATE tareas SET tarea = ${tarea} WHERE id = ${id}`;
+            
+            conexion.end();
+
+            ok(count);
+
+        }catch(error){
+
+            ko({ error : "error en el servidor" });
+
+        }
+    });
+}
+
+
+
+module.exports = {tareas, crearTarea, borrarTarea, toggleEstado, editarTexto};
+
+/*
+editarTexto(4,"actualizado")
+.then(x => console.log(x))
+.catch(x => console.log(x))
+*/
+
+/*
+borrarTarea(1)
+.then(x => console.log(x))
+.catch(x => console.log(x))
+*/
+/*
+crearTarea("hola")
+.then(x => console.log(x))
+.catch(x => console.log(x))
+*/
+/*
+toggleEstado(4)
+.then(x => console.log(x))
+.catch(x => console.log(x))
+*/
+
